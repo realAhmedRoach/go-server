@@ -20,7 +20,7 @@ func Connect() *pgxpool.Pool {
 const (
 	listQuery = "select array_to_json(array_agg(row_to_json(t))) from (select * from %s) t"
 	getQuery  = "select row_to_json(%s) from %[1]s where uid=$1"
-	putQuery  = "insert into %s values (%s) returning uid"
+	putQuery  = "insert into %s (%s) values ($1) returning uid"
 )
 
 var Ctx = context.Background()
@@ -55,7 +55,17 @@ func Retrieve(uid string, table string, conn *pgxpool.Pool) string {
 	return res
 }
 
-func Shchema(table string, obj DatabaseModel, conn pgxpool.Conn) error {
+type UIDReturn struct {
+	uid string
+}
 
-	return nil
+func Insert(query string, conn *pgxpool.Pool, values ...interface{}) string {
+	row := conn.QueryRow(Ctx, query, values...)
+
+	var res string
+	if err := row.Scan(&res); err != nil {
+		return JSONError(FirstWords(err.Error(), -1))
+	}
+
+	return res
 }

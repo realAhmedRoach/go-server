@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"net/http"
 )
+
+var TESTFIRMID = "baf78936-5986-4f24-8a40-5e11aef970c6"
 
 func main() {
 	conn := Connect()
@@ -26,6 +29,20 @@ func main() {
 	router.POST("/sukuk", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		body, _ := ioutil.ReadAll(request.Body)
 		println(string(body))
+
+		order := SukukOrder{}
+
+		if err := json.Unmarshal(body, &order); err != nil {
+			_, _ = writer.Write([]byte(JSONError(err.Error())))
+		}
+
+		order.FirmID = TESTFIRMID
+
+		uid := Insert(SUKUKORDERSCHEMA, conn,
+			order.FirmID, order.Sukuk, order.Price, order.Quantity, order.Side, order.OrderType,
+		)
+
+		fmt.Fprint(writer, uid)
 	})
 
 	if err := http.ListenAndServe(":8090", router); err != nil {
