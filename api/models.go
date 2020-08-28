@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"time"
@@ -85,6 +85,12 @@ type Transaction struct {
 	Price     float64   `json:"price,omitempty"`
 }
 
+type Service interface {
+	Get(uid string) string
+	Put(values ...interface{}) string
+	Delete(uid string)
+}
+
 type SukukTransaction struct {
 	Transaction
 	Sukuk Sukuk `json:"sukuk,omitempty"`
@@ -116,13 +122,4 @@ func (*SukukTransaction) TableName() string {
 	return DB_SUKUKTRANSACTION
 }
 
-const (
-	SUKUKORDERSCHEMA = `
-		insert into sukuk_order 
-			(firm_id, sukuk, price, quantity, side, order_type) 
-			values ($1, $2, $3, $4, $5, $6) 
-			returning uid`
-	SALAMORDERSCHEMA = "insert into salam_order values ($1, $2, $3, $4, $5, $6, $7) returning uid"
-	SUKUKTRANSSCHEMA = "insert into sukuk_transaction values ($1, $2, $3, $4, $5) returning uid"
-	SALAMTRANSSCHEMA = "insert into salam_transaction values ($1, $2, $3, $4, $5, $6) returning uid"
-)
+const TESTFIRMID = "baf78936-5986-4f24-8a40-5e11aef970c6"

@@ -1,4 +1,4 @@
-package main
+package api
 
 import (
 	"bytes"
@@ -19,8 +19,18 @@ func Connect() *pgxpool.Pool {
 
 const (
 	listQuery = "select array_to_json(array_agg(row_to_json(t))) from (select * from %s) t"
-	getQuery  = "select row_to_json(%s) from %[1]s where uid=$1"
-	putQuery  = "insert into %s (%s) values ($1) returning uid"
+	getQuery  = "select row_to_json(%s) from (select %s from %[1]s) where uid=$1"
+)
+
+const (
+	SukukOrderInsertQuery = `
+		insert into sukuk_order 
+			(firm_id, sukuk, price, quantity, side, order_type) 
+			values ($1, $2, $3, $4, $5, $6) 
+			returning uid`
+	salamOrderInsertQuery = "insert into salam_order values ($1, $2, $3, $4, $5, $6, $7) returning uid"
+	sukukTransInsertQuery = "insert into sukuk_transaction values ($1, $2, $3, $4, $5) returning uid"
+	salamTransInsertQuery = "insert into salam_transaction values ($1, $2, $3, $4, $5, $6) returning uid"
 )
 
 var Ctx = context.Background()
@@ -43,8 +53,8 @@ func List(table string, conn *pgxpool.Pool) string {
 	return b.String()
 }
 
-func Retrieve(uid string, table string, conn *pgxpool.Pool) string {
-	query := fmt.Sprintf(getQuery, table)
+func retrieve(uid string, table string, fields string, conn *pgxpool.Pool) string {
+	query := fmt.Sprintf(getQuery, table, fields)
 	row := conn.QueryRow(Ctx, query, uid)
 
 	var res string
@@ -68,4 +78,20 @@ func Insert(query string, conn *pgxpool.Pool, values ...interface{}) string {
 	}
 
 	return res
+}
+
+type DBSukukOrderService struct {
+	Conn *pgxpool.Pool
+}
+
+func (s *DBSukukOrderService) Get(uid string) string {
+	return retrieve(uid, DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, order_type", s.Conn)
+}
+
+func (s *DBSukukOrderService) Put(values ...interface{}) string {
+	return Insert(SukukOrderInsertQuery, s.Conn, values)
+}
+
+func (s *DBSukukOrderService) Delete(uid string) {
+	panic("implement me")
 }
