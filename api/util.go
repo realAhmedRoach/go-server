@@ -5,9 +5,18 @@ import (
 	"fmt"
 )
 
-func JSONError(msg string) string {
-	val, _ := json.Marshal(msg)
+type JSONError struct {
+	Msg string
+}
+
+func (err JSONError) Error() string {
+	val, _ := json.Marshal(err.Msg)
 	return fmt.Sprintf("{\"detail\": %s } ", string(val))
+}
+
+func JSONResult(res string) string {
+	val, _ := json.Marshal(res)
+	return fmt.Sprintf("{\"result\": %s } ", string(val))
 }
 
 func FirstWords(value string, count int) string {

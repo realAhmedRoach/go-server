@@ -36,10 +36,6 @@ type Model struct {
 	UID string `json:"uid,omitempty"`
 }
 
-type DatabaseModel interface {
-	TableName() string
-}
-
 const (
 	DB_FIRM             = "firm"
 	DB_SUKUKORDER       = "sukuk_order"
@@ -86,9 +82,9 @@ type Transaction struct {
 }
 
 type Service interface {
-	Get(uid string) string
-	Put(values ...interface{}) string
-	Delete(uid string)
+	Get(uid string) (string, error)
+	Put(values ...interface{}) (string, error)
+	Delete(uid string) error
 }
 
 type SukukTransaction struct {
@@ -100,26 +96,6 @@ type SalamTransaction struct {
 	Transaction
 	Commodity Commodity `json:"commodity,omitempty"`
 	Contract  Contract  `json:"contract,omitempty"`
-}
-
-func (firm *Firm) TableName() string {
-	return DB_FIRM
-}
-
-func (*SukukOrder) TableName() string {
-	return DB_SUKUKORDER
-}
-
-func (*SalamOrder) TableName() string {
-	return DB_SALAMORDER
-}
-
-func (*SalamTransaction) TableName() string {
-	return DB_SALAMTRANSACTION
-}
-
-func (*SukukTransaction) TableName() string {
-	return DB_SUKUKTRANSACTION
 }
 
 const TESTFIRMID = "baf78936-5986-4f24-8a40-5e11aef970c6"

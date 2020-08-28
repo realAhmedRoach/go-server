@@ -18,8 +18,9 @@ func Connect() *pgxpool.Pool {
 }
 
 const (
-	listQuery = "select array_to_json(array_agg(row_to_json(t))) from (select * from %s) t"
-	getQuery  = "select row_to_json(%s) from (select %s from %[1]s) where uid=$1"
+	listQuery   = "select array_to_json(array_agg(row_to_json(t))) from (select * from %s) t"
+	getQuery    = "select row_to_json(%s) from (select %s from %[1]s) where uid=$1"
+	deleteQuery = `remove from %s where uid=$1`
 )
 
 const (
@@ -35,7 +36,7 @@ const (
 
 var Ctx = context.Background()
 
-func List(table string, conn *pgxpool.Pool) string {
+func list(table string, conn *pgxpool.Pool) string {
 	rows, err := conn.Query(Ctx, fmt.Sprintf(listQuery, table))
 	if err != nil {
 		panic(err.Error())
@@ -53,45 +54,64 @@ func List(table string, conn *pgxpool.Pool) string {
 	return b.String()
 }
 
-func retrieve(uid string, table string, fields string, conn *pgxpool.Pool) string {
+func retrieve(uid string, table string, fields string, conn *pgxpool.Pool) (string, error) {
 	query := fmt.Sprintf(getQuery, table, fields)
 	row := conn.QueryRow(Ctx, query, uid)
 
 	var res string
 	if err := row.Scan(&res); err != nil {
-		return JSONError(FirstWords(err.Error(), 3))
+		return "", err
 	}
 
-	return res
+	return res, nil
 }
 
 type UIDReturn struct {
 	uid string
 }
 
-func Insert(query string, conn *pgxpool.Pool, values ...interface{}) string {
+func insert(query string, conn *pgxpool.Pool, values ...interface{}) (string, error) {
 	row := conn.QueryRow(Ctx, query, values...)
 
 	var res string
 	if err := row.Scan(&res); err != nil {
-		return JSONError(FirstWords(err.Error(), -1))
+		return "", err
 	}
 
-	return res
+	return res, nil
+}
+
+func remove(table string, uid string, conn *pgxpool.Pool) error {
+	if _, err := conn.Exec(Ctx, fmt.Sprintf(deleteQuery, table), uid); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type DBSukukOrderService struct {
 	Conn *pgxpool.Pool
 }
 
-func (s *DBSukukOrderService) Get(uid string) string {
+// TODO: Add error switch for SQL error codes
+
+func (s *DBSukukOrderService) Get(uid string) (string, error) {
 	return retrieve(uid, DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, order_type", s.Conn)
 }
 
-func (s *DBSukukOrderService) Put(values ...interface{}) string {
-	return Insert(SukukOrderInsertQuery, s.Conn, values)
+func (s *DBSukukOrderService) Put(values ...interface{}) (string, error) {
+
+	if res, err := insert(SukukOrderInsertQuery, s.Conn, values); err != nil {
+		return "", JSONError{Msg: err.Error()}
+	} else {
+		return res, nil
+	}
 }
 
-func (s *DBSukukOrderService) Delete(uid string) {
-	panic("implement me")
+func (s *DBSukukOrderService) Delete(uid string) error {
+	if err := remove(uid, DB_SUKUKORDER, s.Conn); err != nil {
+		return JSONError{Msg: "delete failed"}
+	}
+
+	return nil
 }
