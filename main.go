@@ -1,11 +1,16 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"net/http"
 	"sces/api"
 )
 
 func main() {
+	if err := godotenv.Load(".env.dev"); err != nil {
+		panic(err.Error())
+	}
+
 	conn := api.Connect()
 	var app = api.Application{
 		Sukuk: &api.DBSukukOrderService{

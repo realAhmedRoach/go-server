@@ -9,7 +9,7 @@ import (
 )
 
 func Connect() *pgxpool.Pool {
-	conn, err := pgxpool.Connect(context.Background(), "postgres://postgres:salam@localhost:5432/sces?pool_max_conns=10")
+	conn, err := pgxpool.Connect(context.Background(), os.Getenv("POSTGRES_URL"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
