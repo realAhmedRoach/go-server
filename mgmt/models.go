@@ -1,4 +1,4 @@
-package api
+package mgmt
 
 import (
 	"time"
@@ -57,13 +57,13 @@ type Order struct {
 	OrderTime time.Time `json:"order_time,omitempty"`
 	Price     float64   `json:"price,omitempty"`
 	Quantity  int       `json:"quantity,omitempty"`
-	Side      OrderSide `json:"side,omitempty"`
-	OrderType OrderType `json:"order_type,omitempty"`
+	OrderSide OrderSide `json:"side,omitempty"`
+	OrderType OrderType `json:"type,omitempty"`
 }
 
 type SukukOrder struct {
 	Order
-	Sukuk Sukuk `json:"sukuk,omitempty"`
+	Sukuk Sukuk `json:"Sukuk,omitempty"`
 }
 
 type SalamOrder struct {
@@ -89,7 +89,7 @@ type Service interface {
 
 type SukukTransaction struct {
 	Transaction
-	Sukuk Sukuk `json:"sukuk,omitempty"`
+	Sukuk Sukuk `json:"Sukuk,omitempty"`
 }
 
 type SalamTransaction struct {

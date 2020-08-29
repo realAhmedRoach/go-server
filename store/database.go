@@ -1,11 +1,14 @@
-package api
+package store
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"os"
+	"sces/mgmt"
 )
 
 func Connect() *pgxpool.Pool {
@@ -19,8 +22,8 @@ func Connect() *pgxpool.Pool {
 
 const (
 	listQuery   = "select array_to_json(array_agg(row_to_json(t))) from (select * from %s) t"
-	getQuery    = "select row_to_json(%s) from (select %s from %[1]s) where uid=$1"
-	deleteQuery = `remove from %s where uid=$1`
+	getQuery    = "select row_to_json(t) from (select %s from %s where uid=$1) t"
+	deleteQuery = `delete from %s where uid=$1`
 )
 
 const (
@@ -55,19 +58,22 @@ func list(table string, conn *pgxpool.Pool) string {
 }
 
 func retrieve(uid string, table string, fields string, conn *pgxpool.Pool) (string, error) {
-	query := fmt.Sprintf(getQuery, table, fields)
+	query := fmt.Sprintf(getQuery, fields, table)
 	row := conn.QueryRow(Ctx, query, uid)
 
 	var res string
 	if err := row.Scan(&res); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			fmt.Println(pgErr.Message)
+			fmt.Println(pgErr.Code)
+
+			return "", errors.New("internal error: " + pgErr.Code)
+		}
 		return "", err
 	}
 
 	return res, nil
-}
-
-type UIDReturn struct {
-	uid string
 }
 
 func insert(query string, conn *pgxpool.Pool, values ...interface{}) (string, error) {
@@ -75,14 +81,24 @@ func insert(query string, conn *pgxpool.Pool, values ...interface{}) (string, er
 
 	var res string
 	if err := row.Scan(&res); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			fmt.Println(pgErr.Message)
+			fmt.Println(pgErr.Code)
+		}
 		return "", err
 	}
 
 	return res, nil
 }
 
-func remove(table string, uid string, conn *pgxpool.Pool) error {
+func remove(uid string, table string, conn *pgxpool.Pool) error {
 	if _, err := conn.Exec(Ctx, fmt.Sprintf(deleteQuery, table), uid); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			fmt.Println(pgErr.Message)
+			fmt.Println(pgErr.Code)
+		}
 		return err
 	}
 
@@ -96,21 +112,21 @@ type DBSukukOrderService struct {
 // TODO: Add error switch for SQL error codes
 
 func (s *DBSukukOrderService) Get(uid string) (string, error) {
-	return retrieve(uid, DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, order_type", s.Conn)
+	return retrieve(uid, mgmt.DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, order_type", s.Conn)
 }
 
 func (s *DBSukukOrderService) Put(values ...interface{}) (string, error) {
 
-	if res, err := insert(SukukOrderInsertQuery, s.Conn, values); err != nil {
-		return "", JSONError{Msg: err.Error()}
+	if res, err := insert(SukukOrderInsertQuery, s.Conn, values...); err != nil {
+		return "", mgmt.JSONError{Msg: err.Error()}
 	} else {
 		return res, nil
 	}
 }
 
 func (s *DBSukukOrderService) Delete(uid string) error {
-	if err := remove(uid, DB_SUKUKORDER, s.Conn); err != nil {
-		return JSONError{Msg: "delete failed"}
+	if err := remove(uid, mgmt.DB_SUKUKORDER, s.Conn); err != nil {
+		return mgmt.JSONError{Msg: "delete failed"}
 	}
 
 	return nil

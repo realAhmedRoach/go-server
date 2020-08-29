@@ -4,6 +4,8 @@ import (
 	"github.com/joho/godotenv"
 	"net/http"
 	"sces/api"
+	"sces/mgmt"
+	"sces/store"
 )
 
 func main() {
@@ -11,12 +13,8 @@ func main() {
 		panic(err.Error())
 	}
 
-	conn := api.Connect()
-	var app = api.Application{
-		Sukuk: &api.DBSukukOrderService{
-			Conn: conn,
-		},
-	}
+	conn := store.Connect()
+	var app = mgmt.Application{Sukuk: &store.DBSukukOrderService{Conn: conn}}
 
 	defer conn.Close()
 
