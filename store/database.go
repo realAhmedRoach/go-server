@@ -29,7 +29,7 @@ const (
 const (
 	SukukOrderInsertQuery = `
 		insert into sukuk_order 
-			(firm_id, sukuk, price, quantity, side, order_type) 
+			(firm_id, sukuk, price, quantity, side, type) 
 			values ($1, $2, $3, $4, $5, $6) 
 			returning uid`
 	salamOrderInsertQuery = "insert into salam_order values ($1, $2, $3, $4, $5, $6, $7) returning uid"
@@ -39,10 +39,17 @@ const (
 
 var Ctx = context.Background()
 
-func list(table string, conn *pgxpool.Pool) string {
+func list(table string, conn *pgxpool.Pool) (string, error) {
 	rows, err := conn.Query(Ctx, fmt.Sprintf(listQuery, table))
 	if err != nil {
-		panic(err.Error())
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			fmt.Println(pgErr.Message)
+			fmt.Println(pgErr.Code)
+
+			return "", errors.New("internal error: " + pgErr.Code)
+		}
+		return "", err
 	}
 	defer rows.Close()
 
@@ -54,7 +61,7 @@ func list(table string, conn *pgxpool.Pool) string {
 		b.WriteString(str)
 	}
 
-	return b.String()
+	return b.String(), nil
 }
 
 func retrieve(uid string, table string, fields string, conn *pgxpool.Pool) (string, error) {
@@ -85,6 +92,8 @@ func insert(query string, conn *pgxpool.Pool, values ...interface{}) (string, er
 		if errors.As(err, &pgErr) {
 			fmt.Println(pgErr.Message)
 			fmt.Println(pgErr.Code)
+
+			return "", errors.New("internal error: " + pgErr.Code)
 		}
 		return "", err
 	}
@@ -111,12 +120,23 @@ type DBSukukOrderService struct {
 
 // TODO: Add error switch for SQL error codes
 
+func (s *DBSukukOrderService) List() (string, error) {
+	if orders, err := list(mgmt.DB_SUKUKORDER, s.Conn); err != nil {
+		return "", mgmt.JSONError{Msg: err.Error()}
+	} else {
+		return orders, nil
+	}
+}
+
 func (s *DBSukukOrderService) Get(uid string) (string, error) {
-	return retrieve(uid, mgmt.DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, order_type", s.Conn)
+	if order, err := retrieve(uid, mgmt.DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, type", s.Conn); err != nil {
+		return "", mgmt.JSONError{Msg: err.Error()}
+	} else {
+		return order, nil
+	}
 }
 
 func (s *DBSukukOrderService) Put(values ...interface{}) (string, error) {
-
 	if res, err := insert(SukukOrderInsertQuery, s.Conn, values...); err != nil {
 		return "", mgmt.JSONError{Msg: err.Error()}
 	} else {

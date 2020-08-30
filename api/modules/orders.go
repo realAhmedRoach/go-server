@@ -6,18 +6,31 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sces/mgmt"
+	"sces/store"
 )
 
 func OrderRoutes(app *mgmt.Application) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Route("/sukuk", func(r chi.Router) {
-		router.Post("/", createSukukOrder(app))
-		router.Get("/{uid}", getSukukOrder(app))
-		router.Delete("/{uid}", deleteSukukOrder(app))
+		r.Get("/", listSukukOrders(app))
+		r.Post("/", createSukukOrder(app))
+		r.Get("/{uid}", getSukukOrder(app))
+		r.Delete("/{uid}", deleteSukukOrder(app))
 	})
 
 	return router
+}
+
+func listSukukOrders(app *mgmt.Application) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		if res, err := app.SukukManager().(*store.DBSukukOrderService).List(); err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte(err.Error()))
+		} else {
+			writer.Write([]byte(res))
+		}
+	}
 }
 
 func createSukukOrder(app *mgmt.Application) http.HandlerFunc {
@@ -42,6 +55,7 @@ func createSukukOrder(app *mgmt.Application) http.HandlerFunc {
 			writer.WriteHeader(http.StatusBadRequest)
 			writer.Write([]byte(err.Error()))
 		} else {
+			writer.WriteHeader(http.StatusCreated)
 			writer.Write([]byte(mgmt.JSONResult(uid)))
 		}
 	}
