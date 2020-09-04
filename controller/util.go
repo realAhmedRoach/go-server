@@ -1,4 +1,4 @@
-package mgmt
+package controller
 
 import (
 	"encoding/json"

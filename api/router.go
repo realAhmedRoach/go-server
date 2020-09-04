@@ -4,10 +4,10 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"sces/api/modules"
-	"sces/mgmt"
+	"sces/controller"
 )
 
-func Routes(app *mgmt.Application) *chi.Mux {
+func Routes(app *controller.Application) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(middleware.SetHeader("Content-Type", "application/json"))

@@ -5,11 +5,12 @@ import (
 	"github.com/go-chi/chi"
 	"io/ioutil"
 	"net/http"
+	"sces/controller"
 	"sces/mgmt"
 	"sces/store"
 )
 
-func OrderRoutes(app *mgmt.Application) *chi.Mux {
+func OrderRoutes(app *controller.Application) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Route("/sukuk", func(r chi.Router) {
@@ -22,7 +23,7 @@ func OrderRoutes(app *mgmt.Application) *chi.Mux {
 	return router
 }
 
-func listSukukOrders(app *mgmt.Application) http.HandlerFunc {
+func listSukukOrders(app *controller.Application) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		if res, err := app.SukukManager().(*store.DBSukukOrderService).List(); err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
@@ -33,7 +34,7 @@ func listSukukOrders(app *mgmt.Application) http.HandlerFunc {
 	}
 }
 
-func createSukukOrder(app *mgmt.Application) http.HandlerFunc {
+func createSukukOrder(app *controller.Application) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		body, _ := ioutil.ReadAll(request.Body)
 
@@ -41,7 +42,7 @@ func createSukukOrder(app *mgmt.Application) http.HandlerFunc {
 
 		if err := json.Unmarshal(body, &order); err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
-			writer.Write([]byte(mgmt.JSONError{
+			writer.Write([]byte(controller.JSONError{
 				Msg: "invalid order input",
 			}.Error()))
 			return
@@ -56,12 +57,12 @@ func createSukukOrder(app *mgmt.Application) http.HandlerFunc {
 			writer.Write([]byte(err.Error()))
 		} else {
 			writer.WriteHeader(http.StatusCreated)
-			writer.Write([]byte(mgmt.JSONResult(uid)))
+			writer.Write([]byte(controller.JSONResult(uid)))
 		}
 	}
 }
 
-func getSukukOrder(app *mgmt.Application) http.HandlerFunc {
+func getSukukOrder(app *controller.Application) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		uid := chi.URLParam(request, "uid")
 
@@ -74,7 +75,7 @@ func getSukukOrder(app *mgmt.Application) http.HandlerFunc {
 	}
 }
 
-func deleteSukukOrder(app *mgmt.Application) http.HandlerFunc {
+func deleteSukukOrder(app *controller.Application) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		uid := chi.URLParam(request, "uid")
 

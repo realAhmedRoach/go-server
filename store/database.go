@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"os"
+	"sces/controller"
 	"sces/mgmt"
 )
 
@@ -27,7 +28,7 @@ const (
 )
 
 const (
-	SukukOrderInsertQuery = `
+	sukukOrderInsertQuery = `
 		insert into sukuk_order 
 			(firm_id, sukuk, price, quantity, side, type) 
 			values ($1, $2, $3, $4, $5, $6) 
@@ -122,7 +123,7 @@ type DBSukukOrderService struct {
 
 func (s *DBSukukOrderService) List() (string, error) {
 	if orders, err := list(mgmt.DB_SUKUKORDER, s.Conn); err != nil {
-		return "", mgmt.JSONError{Msg: err.Error()}
+		return "", controller.JSONError{Msg: err.Error()}
 	} else {
 		return orders, nil
 	}
@@ -130,15 +131,15 @@ func (s *DBSukukOrderService) List() (string, error) {
 
 func (s *DBSukukOrderService) Get(uid string) (string, error) {
 	if order, err := retrieve(uid, mgmt.DB_SUKUKORDER, "firm_id, sukuk, price, quantity, side, type", s.Conn); err != nil {
-		return "", mgmt.JSONError{Msg: err.Error()}
+		return "", controller.JSONError{Msg: err.Error()}
 	} else {
 		return order, nil
 	}
 }
 
 func (s *DBSukukOrderService) Put(values ...interface{}) (string, error) {
-	if res, err := insert(SukukOrderInsertQuery, s.Conn, values...); err != nil {
-		return "", mgmt.JSONError{Msg: err.Error()}
+	if res, err := insert(sukukOrderInsertQuery, s.Conn, values...); err != nil {
+		return "", controller.JSONError{Msg: err.Error()}
 	} else {
 		return res, nil
 	}
@@ -146,7 +147,7 @@ func (s *DBSukukOrderService) Put(values ...interface{}) (string, error) {
 
 func (s *DBSukukOrderService) Delete(uid string) error {
 	if err := remove(uid, mgmt.DB_SUKUKORDER, s.Conn); err != nil {
-		return mgmt.JSONError{Msg: "delete failed"}
+		return controller.JSONError{Msg: "delete failed"}
 	}
 
 	return nil
